@@ -1,41 +1,58 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
-import { tsoogle } from "@stanimirovv/tsoogle";
+import { tsoogle, tsoogleCmd } from "@stanimirovv/tsoogle";
 
 let tsConfigFilePath = "";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "tsoogle-vs" is now active!');
   let disposableSearch = vscode.commands.registerCommand(
     "tsoogle.search",
-    async () => {
-      if (!tsConfigFilePath) {
-        tsConfigFilePath =
-          (await vscode.window.showInputBox({
-            placeHolder: "Enter your project's tsconfig.json file path",
-          })) || "";
-      }
+    function () {
+      const panel = vscode.window.createWebviewPanel(
+        "form",
+        "Tsoogle Search",
+        vscode.ViewColumn.One,
+        {
+          enableScripts: true,
+        }
+      );
 
-      const userQuery =
-        (await vscode.window.showInputBox({
-          placeHolder: "Enter your query",
-        })) || "";
+      panel.webview.html = getWebviewContent();
 
-      const isInputValid = userQuery && tsConfigFilePath;
-      if (!isInputValid) {
-        vscode.window.showInformationMessage(
-          "TSOOGLE: Invalid input. Please try again."
-        );
-        return;
-      }
-      const outputText = tsoogle(tsConfigFilePath, userQuery);
+      panel.webview.onDidReceiveMessage(
+        (message) => {
+          switch (message.command) {
+            case "submit":
+              const text1 = message.tsConfigFilePath;
+              tsConfigFilePath = text1;
+              const query = message.query;
+              // Handle the submitted text1 and text2
+              vscode.window.showInformationMessage(
+                `Searching: ${query} in ${tsConfigFilePath}`
+              );
 
-      const terminal = vscode.window.createTerminal(`Ext Terminal`);
-      terminal.show(true);
-      terminal.sendText(`echo -e "${outputText}"`, true);
+              const results = tsoogle(tsConfigFilePath, query);
+              let html = "<ul>";
+              results.forEach((result) => {
+                html += `<li><span style="color:BlanchedAlmond">${result.fileName}</span>:<span>${result.line}</span> <span style="color:DarkCyan">${result.functionName}</span>(<span style="color:DodgerBlue">${result.paramString}</span>): <span style="color:DarkSeaGreen">${result.returnType}</span></li>`;
+              });
+              html += "</ul>";
+
+              const searchPanel = vscode.window.createWebviewPanel(
+                "tsoogle-vs",
+                "Tsoogle Results",
+                vscode.ViewColumn.One,
+                {}
+              );
+
+              searchPanel.webview.html = html;
+              panel.dispose();
+              break;
+          }
+        },
+        undefined,
+        context.subscriptions
+      );
     }
   );
 
@@ -53,5 +70,51 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposableReset);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}
+
+function getWebviewContent() {
+  return `
+    <html>
+      <body>
+        <input type="text" id="tsConfigFilePath" placeholder="Absolute path to tsconfig.json" value="${tsConfigFilePath}"/>
+        <input type="text" id="query" placeholder="Tsoogle Query"/>
+        <button onclick="submitForm()">Submit</button>
+
+        <script>
+          const vscode = acquireVsCodeApi();
+          window.onload = () => {
+            if(document.getElementById('tsConfigFilePath').value === '') {
+              document.getElementById('tsConfigFilePath').focus();
+            } else {
+              document.getElementById('query').focus();
+            }
+
+            if (tsConfigFilePath !== '') {
+              document.getElementById('tsConfigFilePath').value = "${tsConfigFilePath}";
+            }
+          };
+
+          document.getElementById('tsConfigFilePath').addEventListener('keydown', handleEnterPress);
+          document.getElementById('query').addEventListener('keydown', handleEnterPress);
+
+          function handleEnterPress(event) {
+            if(event.key === 'Enter') {
+              submitForm();
+            }
+          }
+
+
+          function submitForm() {
+            const tsConfigFilePath = document.getElementById('tsConfigFilePath').value;
+            const query = document.getElementById('query').value;
+            vscode.postMessage({
+              command: 'submit',
+              tsConfigFilePath: tsConfigFilePath,
+              query: query
+            })
+          }
+        </script>
+      </body>
+    </html>
+  `;
+}
