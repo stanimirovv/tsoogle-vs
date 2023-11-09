@@ -33,8 +33,8 @@ export function activate(context: vscode.ExtensionContext) {
 
               const results = tsoogle(tsConfigFilePath, query);
               let html = "<ul>";
-              results.forEach((result) => {
-                html += `<li><span style="color:BlanchedAlmond">${result.fileName}</span>:<span>${result.line}</span> <span style="color:DarkCyan">${result.functionName}</span>(<span style="color:DodgerBlue">${result.paramString}</span>): <span style="color:DarkSeaGreen">${result.returnType}</span></li>`;
+              results.forEach((result, idx) => {
+                html += `<li><span style="color:BlanchedAlmond" onclick="window.acquireVsCodeApi().postMessage({command: 'openFile', text: '${result.fileName}', line: '${result.line}'})">${result.fileName}</span>:<span>${result.line}</span> <span style="color:DarkCyan">${result.functionName}</span>(<span style="color:DodgerBlue">${result.paramString}</span>): <span style="color:DarkSeaGreen">${result.returnType}</span></li>`;
               });
               html += "</ul>";
 
@@ -42,11 +42,31 @@ export function activate(context: vscode.ExtensionContext) {
                 "tsoogle-vs",
                 "Tsoogle Results",
                 vscode.ViewColumn.One,
-                {}
+                { enableScripts: true } // Enable scripts in the new webview
               );
 
               searchPanel.webview.html = html;
               panel.dispose();
+
+              // Listen for the openFile message on the new webview
+              searchPanel.webview.onDidReceiveMessage(
+                (message) => {
+                  if (message.command === "openFile") {
+                    const filePath = message.text;
+                    const line = message.line;
+                    const openPath = vscode.Uri.file(filePath);
+                    vscode.workspace.openTextDocument(openPath).then((doc) => {
+                      const lineNumber = parseInt(line) - 1; // Line numbers are 0-based
+                      const lineRange = doc.lineAt(lineNumber).range; // Get the range of the line
+                      vscode.window.showTextDocument(doc, {
+                        selection: lineRange,
+                      });
+                    });
+                  }
+                },
+                undefined,
+                context.subscriptions
+              );
               break;
           }
         },
