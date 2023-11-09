@@ -2,7 +2,7 @@
   "name": "tsoogle-vs",
   "displayName": "tsoogle-vs",
   "description": "fuzzy & approximate symbol search",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "stanimirovv",
   "repository": "https://github.com/stanimirovv/tsoogle-vs",
   "engines": {
@@ -46,6 +46,6 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@stanimirovv/tsoogle": "^1.1.0"
+    "@stanimirovv/tsoogle": "^1.2.0"
   }
 }
