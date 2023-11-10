@@ -46,6 +46,6 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@stanimirovv/tsoogle": "^1.2.0"
+    "@stanimirovv/tsoogle": "^1.3.1"
   }
 }
