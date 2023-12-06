@@ -3,14 +3,9 @@
 Tsoogle - like google but for your typescript project.
 Find functions or methods by approximate signature - return type, argument types or both. Supports optional arguments, rest arguments and partial type checking.
 
-This is a vscode extension for the tsoogle project: https://github.com/stanimirovv/tsoogle
+Run the `Tsoogle Search` (cmd + shift + p and write Tsoogle)
+A webview will be opened where you need to put the **absolute** filepath to your `tsconfig.json` file.
+Then you can search for functions or methods using the tiny tsoogle query language.
+Please refer to the tsoogle main repo for more information, how to query, etc.  https://github.com/stanimirovv/tsoogle
 
-
-## Features
-
-THIS IS A WORK IN PROGRESS PLUGIN.
-
-
-That being said you can use Tsoogle if you run the Tsoogle Search command.
-The first time you run it for the session you will have to input your tsconfig filepath's absolute path.
-Then you can write queries (see the tsoogle repo for documentation)
+Stars and PRs are welcome!
