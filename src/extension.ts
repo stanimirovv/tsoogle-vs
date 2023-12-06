@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
       panel.webview.html = getWebviewContent();
 
       panel.webview.onDidReceiveMessage(
-        (message) => {
+        async (message) => {
           switch (message.command) {
             case "submit":
               const text1 = message.tsConfigFilePath;
@@ -31,9 +31,9 @@ export function activate(context: vscode.ExtensionContext) {
                 `Searching: ${query} in ${tsConfigFilePath}`
               );
 
-              const results = tsoogle(tsConfigFilePath, query);
+              const results = await tsoogle(tsConfigFilePath, query);
               let html = "<ul>";
-              results.forEach((result, idx) => {
+              results.forEach((result: any, idx: any) => {
                 html += `<li id="result-${idx}"><span style="color:BlanchedAlmond">${
                   result.fileName
                 }</span>:<span>${
