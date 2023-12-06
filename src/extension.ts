@@ -34,11 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
               const results = tsoogle(tsConfigFilePath, query);
               let html = "<ul>";
               results.forEach((result, idx) => {
-                html += `<li onclick="window.acquireVsCodeApi().postMessage({command: 'openFile', text: '${
-                  result.fileName
-                }', line: '${
-                  result.line
-                }'})"><span style="color:BlanchedAlmond">${
+                html += `<li id="result-${idx}"><span style="color:BlanchedAlmond">${
                   result.fileName
                 }</span>:<span>${
                   result.line
@@ -55,35 +51,20 @@ export function activate(context: vscode.ExtensionContext) {
               });
               html += "</ul>";
 
-              const searchPanel = vscode.window.createWebviewPanel(
-                "tsoogle-vs",
-                "Tsoogle Results",
-                vscode.ViewColumn.One,
-                { enableScripts: true } // Enable scripts in the new webview
-              );
+              panel.webview.html = getWebviewContent(html, results);
+              break;
+            case "openFile":
+              const filePath = message.text;
+              const line = message.line;
+              const openPath = vscode.Uri.file(filePath);
+              vscode.workspace.openTextDocument(openPath).then((doc) => {
+                const lineNumber = parseInt(line) - 1;
+                const lineRange = doc.lineAt(lineNumber).range;
+                vscode.window.showTextDocument(doc, {
+                  selection: lineRange,
+                });
+              });
 
-              searchPanel.webview.html = html;
-              panel.dispose();
-
-              // Listen for the openFile message on the new webview
-              searchPanel.webview.onDidReceiveMessage(
-                (message) => {
-                  if (message.command === "openFile") {
-                    const filePath = message.text;
-                    const line = message.line;
-                    const openPath = vscode.Uri.file(filePath);
-                    vscode.workspace.openTextDocument(openPath).then((doc) => {
-                      const lineNumber = parseInt(line) - 1;
-                      const lineRange = doc.lineAt(lineNumber).range;
-                      vscode.window.showTextDocument(doc, {
-                        selection: lineRange,
-                      });
-                    });
-                  }
-                },
-                undefined,
-                context.subscriptions
-              );
               break;
           }
         },
@@ -109,16 +90,30 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {}
 
-function getWebviewContent() {
+function getWebviewContent(extraHtml = "", results: any = []) {
   return `
     <html>
+      <head>
+      </head>
       <body>
         <input type="text" id="tsConfigFilePath" placeholder="Absolute path to tsconfig.json" value="${tsConfigFilePath}"/>
         <input type="text" id="query" placeholder="Tsoogle Query"/>
         <button onclick="submitForm()">Submit</button>
+        ${extraHtml}
 
         <script>
           const vscode = acquireVsCodeApi();
+          ${results
+            .map(
+              (result: any, idx: number) => `
+            document.getElementById('result-${idx}').addEventListener('click', () => {
+              vscode.postMessage({command: 'openFile', text: '${result.fileName}', line: '${result.line}'});
+            });
+          `
+            )
+            .join("")}
+      </script>
+        <script>
           window.onload = () => {
             if(document.getElementById('tsConfigFilePath').value === '') {
               document.getElementById('tsConfigFilePath').focus();
